@@ -1,5 +1,5 @@
 // Server-side code
- import express from 'express';
+ import express from 'express'
  import path from 'path';
  import { createServer } from 'http';
   import { Server } from 'socket.io';
