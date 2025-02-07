@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="Node, events, sockets, chat">
+    <title>Chat App</title>
+    <style>
+        .container {
+            margin: auto;
+            width: 60%;
+            border: 5px solid #000;
+            padding: 10px;
+        }
+        #chatDisplay p {
+            font-size: 25px;
+        }
+        .bottom-panel, .bottom-panel input {
+            font-size: 25px;
+        }
+        #sendButton {
+            font-size: 22px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container" style="height: 500px; max-height: 500px; overflow-y: scroll;">
+        <div id="chatDisplay"></div>
+    </div>
+    <div class="container bottom-panel">
+        <p>Number of People Connected: <span id="active-clients">0</span></p>
+        <button id="connectButton">Connect</button>
+        <button id="disconnectButton" disabled>Disconnect</button>
+        <p>Current Server Time: <span id="time-display"></span></p>
+        <p>Your Name: <input type="text" id="name" disabled /></p>
+        <p>Your Message: <input type="text" id="message" disabled /></p>
+        <button id="sendButton" disabled>Send Message</button>
+    </div>
+    <script>
+        let socket = null;
+
+        // Get DOM elements
+        const chatDisplayElement = document.querySelector('#chatDisplay');
+        const nameInputBox = document.querySelector('#name');
+        const messageInputBox = document.querySelector('#message');
+        const timeOutputSpan = document.querySelector('#time-display');
+        const clientCountSpan = document.querySelector('#active-clients');
+        const connectButton = document.querySelector('#connectButton');
+        const disconnectButton = document.querySelector('#disconnectButton');
+        const sendButton = document.querySelector('#sendButton');
+
+        // Function to enable UI
+        function enableUI() {
+            connectButton.disabled = true;
+            disconnectButton.disabled = false;
+            nameInputBox.disabled = false;
+            messageInputBox.disabled = false;
+            sendButton.disabled = false;
+        }
+
+        // Function to disable UI
+        function disableUI() {
+            connectButton.disabled = false;
+            disconnectButton.disabled = true;
+            nameInputBox.disabled = true;
+            messageInputBox.disabled = true;
+            sendButton.disabled = true;
+            clientCountSpan.innerText = '0';
+            timeOutputSpan.innerText = '';
+        }
+
+        // Connect button handler
+        connectButton.addEventListener('click', () => {
+            socket = io();
+
+            enableUI();
+
+            // Handle server events
+            socket.on('welcome', (message) => {
+                console.log(message);
+                chatDisplayElement.innerHTML += `<p>${message}</p>`;
+            });
+
+            socket.on('new-message', (newChatInfo) => {
+                chatDisplayElement.innerHTML += `<p>[${newChatInfo.name}] - ${newChatInfo.contents}</p>`;
+            });
+
+            socket.on('server-time', (dateTimeString) => {
+                timeOutputSpan.innerText = dateTimeString;
+            });
+
+            socket.on('client-count', (count) => {
+                clientCountSpan.innerText = count;
+            });
+
+            socket.on('disconnect', () => {
+                chatDisplayElement.innerHTML += `<p>Server disconnected!</p>`;
+                disableUI();
+            });
+        });
+
+        // Disconnect button handler
+        disconnectButton.addEventListener('click', () => {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                disableUI();
+                console.log('Disconnected from the server.');
+            }
+        });
+
+        // Send message button handler
+        sendButton.addEventListener('click', () => {
+            const username = nameInputBox.value;
+            const message = messageInputBox.value;
+
+            if (username.length === 0 || message.length === 0) {
+                alert("You must enter a name and message!");
+                return;
+            }
+
+            const newChatInfo = { name: username, contents: message };
+            socket.emit('message', newChatInfo);
+        });
+    </script>
+</body>
+</html>
